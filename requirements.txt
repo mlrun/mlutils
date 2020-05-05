@@ -1,0 +1,8 @@
+matplotlib
+mlrun
+numpy
+pandas
+scikit-learn
+seaborn
+cloudpickle
+mlrun=0.4.7
