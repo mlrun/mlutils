@@ -131,7 +131,7 @@ def eval_class_model(
     # CONFUSION MATRIX
     gcf_clear(plt)
     cmd = metrics.plot_confusion_matrix(
-        model, xtest, ytest, normalize='all', cmap=plt.cm.Blues)
+        model, xtest, ytest, normalize='all', values_format='.2g', cmap=plt.cm.Blues)
     model_metrics["plots"].append(PlotArtifact(
         "confusion-matrix", body=cmd.figure_))
 
@@ -271,7 +271,7 @@ def eval_class_model(
                               "recall_score": metrics.recall_score(ytest, ypred)})
 
         # precision-recall
-        gcf_clear(plt)
+        #gcf_clear(plt)
         disp = metrics.plot_precision_recall_curve(model, xtest, ytest)
         disp.ax_.set_title(
             f'precision recall: AP={metrics.average_precision_score(ytest, yprob_pos):0.2f}')
@@ -279,7 +279,7 @@ def eval_class_model(
             "precision-recall-binary", body=disp.figure_))
 
         # ROC plot
-        gcf_clear(plt)
+        #gcf_clear(plt)
         fpr, tpr, _ = metrics.roc_curve(ytest, yprob_pos)
         plt.figure(1)
         plt.plot([0, 1], [0, 1], 'k--')
