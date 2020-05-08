@@ -100,13 +100,15 @@ def eval_class_model(
     :param labels:       ('labels') labels in ytest is a pd.DataFrame or Series
     :param pred_params:  (None) dict of predict function parameters
     """
-    if isinstance(ytest, (pd.DataFrame, pd.Series)):
+    if isinstance(ytest, (pd.DataFrame, pd.Series, xgb.DMatrix)):
         ytest = ytest.values
         unique_labels = np.unique(ytest)
     elif isinstance(ytest, np.ndarray):
         unique_labels = np.unique(ytest)
     elif isinstance(ytest, list):
         unique_labels = set(ytest)
+    else:
+        raise TypeError("out of luck data type unrecognized")
 
     n_classes = len(unique_labels)
     is_multiclass = True if n_classes > 2 else False
@@ -131,7 +133,7 @@ def eval_class_model(
     # CONFUSION MATRIX
     gcf_clear(plt)
     cmd = metrics.plot_confusion_matrix(
-        model, xtest, ytest, normalize='all', cmap=plt.cm.Blues)
+        model, xtest, ytest, normalize='all', values_format='.2g', cmap=plt.cm.Blues)
     model_metrics["plots"].append(PlotArtifact(
         "confusion-matrix", body=cmd.figure_))
 
@@ -270,15 +272,7 @@ def eval_class_model(
                               "precision_score": metrics.precision_score(ytest, ypred),
                               "recall_score": metrics.recall_score(ytest, ypred)})
 
-        # precision-recall
-        gcf_clear(plt)
-        disp = metrics.plot_precision_recall_curve(model, xtest, ytest)
-        disp.ax_.set_title(
-            f'precision recall: AP={metrics.average_precision_score(ytest, yprob_pos):0.2f}')
-        model_metrics["plots"].append(PlotArtifact(
-            "precision-recall-binary", body=disp.figure_))
-
-        # ROC plot
+         # ROC plot
         gcf_clear(plt)
         fpr, tpr, _ = metrics.roc_curve(ytest, yprob_pos)
         plt.figure(1)
@@ -290,5 +284,14 @@ def eval_class_model(
         plt.legend(loc='best')
         model_metrics["plots"].append(
             PlotArtifact("roc-binary", body=plt.gcf()))
+
+        # precision-recall
+        #gcf_clear(plt)
+        disp = metrics.plot_precision_recall_curve(model, xtest, ytest)
+        disp.ax_.set_title(
+            f'precision recall: AP={metrics.average_precision_score(ytest, yprob_pos):0.2f}')
+        model_metrics["plots"].append(PlotArtifact(
+            "precision-recall-binary", body=disp.figure_))
+
 
     return model_metrics

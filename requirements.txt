@@ -5,4 +5,4 @@ pandas
 scikit-learn
 seaborn
 cloudpickle
-mlrun=0.4.7
+mlrun==0.4.7
