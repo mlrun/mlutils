@@ -58,16 +58,7 @@ def get_splits(
     :param label_names:         label names
     :param random_state:   (1) random number seed
     """
-    if isinstance(raw, np.ndarray):
-        if labels.ndim == 1:
-            labels = labels.reshape(-1, 1)
-        xy = np.concatenate([raw, labels], axis=1)
-    else:
-        if isinstance(labels, pd.Series):
-            labels = pd.DataFrame(data=labels, columns=label_names)
-        xy = pd.concat([raw, labels], axis=1)
-
-    x, xte, y, yte = train_test_split(xy, labels, test_size=test_size,
+    x, xte, y, yte = train_test_split(raw, labels, test_size=test_size,
                                       random_state=random_state)
     if n_ways == 2:
         return (x, y), (xte, yte), None, None
