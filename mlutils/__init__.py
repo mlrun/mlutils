@@ -5,7 +5,13 @@ from .models import (get_class_fit,
                      eval_class_model)
 
 from .plots import (gcf_clear,
-                    plot_importance)
+                    feature_importances,
+                    learning_curves,
+                    confusion_matrix,
+                    precision_recall_multi,
+                    roc_multi,
+                    roc_bin,
+                    precision_recall_bin)
 
 from .data import (get_sample,
                    get_splits,
