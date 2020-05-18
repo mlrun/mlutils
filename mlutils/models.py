@@ -1,13 +1,10 @@
 from inspect import signature, _empty
 from importlib import import_module
 
-from cloudpickle import dumps, dump
 import json
-from itertools import cycle
 
 from mlrun.artifacts import PlotArtifact
-from .plots import (gcf_clear,
-                    learning_curves,
+from .plots import (learning_curves,
                     feature_importances,
                     precision_recall_bin,
                     precision_recall_multi,
@@ -17,7 +14,6 @@ from .plots import (gcf_clear,
 
 import numpy as np
 import pandas as pd
-from scipy import interp
 from sklearn import metrics
 from sklearn.preprocessing import LabelBinarizer
 from scikitplot.metrics import plot_calibration_curve
@@ -45,7 +41,7 @@ def get_class_fit(module_pkg_class: str):
 
 def create_class(pkg_class: str):
     """Create a class from a package.module.class string
-    
+
     :param pkg_class:  full class location,
                        e.g. "sklearn.model_selection.GroupKFold"
     """
@@ -58,7 +54,7 @@ def create_class(pkg_class: str):
 
 def create_function(pkg_func: list):
     """Create a function from a package.module.function string
-    
+
     :param pkg_func:  full function location,
                       e.g. "sklearn.feature_selection.f_classif"
     """
@@ -72,8 +68,8 @@ def create_function(pkg_func: list):
 
 def gen_sklearn_model(model_pkg, skparams):
     """generate an sklearn model configuration
-    
-    input can be either a "package.module.class" or 
+
+    input can be either a "package.module.class" or
     a json file
     """
     if model_pkg.endswith("json"):
@@ -99,13 +95,15 @@ def eval_class_model(
     pred_params: dict = {}
 ):
     """generate predictions and validation stats
-    
-    pred_params are non-default, scikit-learn api prediction-function parameters.
-    For example, a tree-type of model may have a tree depth limit for its prediction
-    function.
-    
-    :param xtest:        features array type Union(DataItem, DataFrame, np. Array)
-    :param ytest:        ground-truth labels Union(DataItem, DataFrame, Series, np. Array, List)
+
+    pred_params are non-default, scikit-learn api prediction-function
+    parameters. For example, a tree-type of model may have a tree depth
+    limit for its prediction function.
+
+    :param xtest:        features array type Union(DataItem, DataFrame,
+                         numpy array)
+    :param ytest:        ground-truth labels Union(DataItem, DataFrame,
+                         Series, numpy array, List)
     :param model:        estimated model
     :param pred_params:  (None) dict of predict function parameters
     """
@@ -117,8 +115,8 @@ def eval_class_model(
         try:
             ytest = ytest.values
             unique_labels = np.unique(ytest)
-        except:
-            raise Exception("unrecognized data type for ytest")
+        except Exception as e:
+            raise Exception(f"unrecognized data type for ytest {e}")
 
     n_classes = len(unique_labels)
     is_multiclass = True if n_classes > 2 else False
@@ -142,7 +140,7 @@ def eval_class_model(
     plot_calibration_curve(ytest, [yprob], ['xgboost'])
     context.log_artifact(PlotArtifact("calibration curve", body=plt.gcf()),
                          local_path=f"{plots_dest}/calibration curve.html")
-    
+
     # start evaluating:
     # mm_plots.extend(learning_curves(model))
     if hasattr(model, "evals_result"):
@@ -150,39 +148,38 @@ def eval_class_model(
         train_set = list(results.items())[0]
         valid_set = list(results.items())[1]
 
-        learning_curves = pd.DataFrame({
-            "train_error" : train_set[1]["error"],
-            "train_auc" : train_set[1]["auc"],
-            "valid_error" : valid_set[1]["error"],
-            "valid_auc" : valid_set[1]["auc"]})
+        learning_curves_df = pd.DataFrame({
+            "train_error": train_set[1]["error"],
+            "train_auc": train_set[1]["auc"],
+            "valid_error": valid_set[1]["error"],
+            "valid_auc": valid_set[1]["auc"]})
 
-        plt.clf() #gcf_clear(plt)
-        fig, ax = plt.subplots()
+        plt.clf()
+        _, ax = plt.subplots()
         plt.xlabel('# training examples')
         plt.ylabel('auc')
         plt.title('learning curve - auc')
-        ax.plot(learning_curves.train_auc, label='train')
-        ax.plot(learning_curves.valid_auc, label='valid')
-        legend = ax.legend(loc='lower left')
-        context.log_artifact(PlotArtifact("learning curve - auc", body=plt.gcf()),
-                            local_path=f"{plots_dest}/learning curve - auc.html")
+        ax.plot(learning_curves_df.train_auc, label='train')
+        ax.plot(learning_curves_df.valid_auc, label='valid')
+        context.log_artifact(
+            PlotArtifact("learning curve - auc", body=plt.gcf()),
+            local_path=f"{plots_dest}/learning curve - auc.html")
 
-        plt.clf() #gcf_clear(plt)
-        fig, ax = plt.subplots()
+        plt.clf()
+        _, ax = plt.subplots()
         plt.xlabel('# training examples')
         plt.ylabel('error rate')
         plt.title('learning curve - error')
-        ax.plot(learning_curves.train_error, label='train')
-        ax.plot(learning_curves.valid_error, label='valid')
-        legend = ax.legend(loc='lower left')
-        context.log_artifact(PlotArtifact("learning curve - erreur", body=plt.gcf()),
-                            local_path=f"{plots_dest}/learning curve - erreur.html")
-        
-    
+        ax.plot(learning_curves_df.train_error, label='train')
+        ax.plot(learning_curves_df.valid_error, label='valid')
+        context.log_artifact(
+            PlotArtifact("learning curve - erreur", body=plt.gcf()),
+            local_path=f"{plots_dest}/learning curve - erreur.html")
+
     (fi_plot, fi_tbl) = feature_importances(model, xtest.columns)
     mm_plots.append(fi_plot)
     mm_tables.append(fi_tbl)
-        
+
     mm_plots.append(confusion_matrix(model, xtest, ytest))
 
     if is_multiclass:
@@ -191,40 +188,44 @@ def eval_class_model(
 
         mm_plots.append(precision_recall_multi(ytest_b, yprob, unique_labels))
         mm_plots.append(roc_multi(ytest_b, yprob, unique_labels))
- 
+
         # AUC multiclass
-        mm.update({
-            "auc-micro": metrics.roc_auc_score(ytest_b, yprob, 
-                                                multi_class="ovo", 
-                                                average="micro"),
-            "auc-weighted": metrics.roc_auc_score(ytest_b, yprob, 
-                                                  multi_class="ovo", 
-                                                  average="weighted")})
+        aucmicro = metrics.roc_auc_score(ytest_b, yprob, multi_class="ovo",
+                                         average="micro")
+        aucweighted = metrics.roc_auc_score(ytest_b, yprob, multi_class="ovo",
+                                             average="weighted")
+
+        mm.update({"auc-micro": aucmicro,  "auc-weighted": aucweighted})
 
         # others (todo - macro, micro...)
+        f1 = metrics.f1_score(ytest, ypred, average="micro")
+        ps = metrics.precision_score(ytest, ypred, average="micro")
+        rs = metrics.recall_score(ytest, ypred, average="micro")
         mm.update({
-            "f1-score": metrics.f1_score(ytest, ypred, average="micro"),
-            "precision_score": metrics.precision_score(ytest, ypred, average="micro"),
-            "recall_score": metrics.recall_score(ytest, ypred, average="micro")})
+            "f1-score": f1,
+            "precision_score": ps,
+            "recall_score": rs})
 
     else:
-        # extract the positive label
         yprob_pos = yprob[:, 1]
-        
-        
+
         mm_plots.append(roc_bin(ytest, yprob_pos))
         mm_plots.append(precision_recall_bin(model, xtest, ytest, yprob_pos))
-        
+
+        rocauc = metrics.roc_auc_score(ytest, yprob_pos)
+        brier_score = metrics.brier_score_loss(ytest, yprob_pos,
+                                               pos_label=ytest.max())
+        f1 = metrics.f1_score(ytest, ypred)
+        ps = metrics.precision_score(ytest, ypred)
+        rs = metrics.recall_score(ytest, ypred)
         mm.update({
-            "rocauc": metrics.roc_auc_score(ytest, yprob_pos),
-            "brier_score": metrics.brier_score_loss(ytest, yprob_pos, 
-                                                    pos_label=ytest.max()),
-            "f1-score": metrics.f1_score(ytest, ypred),
-            "precision_score": metrics.precision_score(ytest, ypred),
-            "recall_score": metrics.recall_score(ytest, ypred)})
-        
+            "rocauc": rocauc,
+            "brier_score": brier_score,
+            "f1-score": f1,
+            "precision_score": ps,
+            "recall_score": rs})
 
     # return all model metrics and plots
     mm.update({"plots": mm_plots, "tables": mm_tables})
-    
+
     return mm

@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from mlrun.artifacts import PlotArtifact, TableArtifact
 import pandas as pd
+from scipy import interp
+from itertools import cycle
 
 
 def gcf_clear(plt):
@@ -69,24 +71,24 @@ def learning_curves(model):
             "valid_auc": valid_set[1]["auc"]})
 
         plt.clf()  # gcf_clear(plt)
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         plt.xlabel('# training examples')
         plt.ylabel('auc')
         plt.title('learning curve - auc')
         ax.plot(learning_curves.train_auc, label='train')
         ax.plot(learning_curves.valid_auc, label='valid')
-        legend = ax.legend(loc='lower left')
+        ax.legend(loc='lower left')
         plots.append(PlotArtifact("learning curve - auc",
                                   body=plt.gcf()))
 
         plt.clf()  # gcf_clear(plt)
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         plt.xlabel('# training examples')
         plt.ylabel('error rate')
         plt.title('learning curve - error')
         ax.plot(learning_curves.train_error, label='train')
         ax.plot(learning_curves.valid_error, label='valid')
-        legend = ax.legend(loc='lower left')
+        ax.legend(loc='lower left')
         plots.append(PlotArtifact("learning curve - taoot",
                                   body=plt.gcf()))
     # elif some other model history api...
@@ -94,9 +96,10 @@ def learning_curves(model):
     return plots
 
 
-def confusion_matrix(model, xtest, ytest):
+def confusion_matrix(model, xtest, ytest, cmap='Blues'):
     cmd = metrics.plot_confusion_matrix(
-        model, xtest, ytest, normalize='all', values_format='.2g', cmap=plt.cm.Blues)
+        model, xtest, ytest, normalize='all',
+        values_format='.2g', cmap=plt.get_cmap(cmap))
     # for now only 1, add different views to this array for display in UI
     return PlotArtifact("confusion-matrix-normalized", body=cmd.figure_)
 
@@ -109,15 +112,14 @@ def precision_recall_multi(ytest_b, yprob, labels, scoring="micro"):
     precision = dict()
     recall = dict()
     avg_prec = dict()
+    pr_curve = metrics.precision_recall_curve
+    avg_score = metrics.average_precision_score
     for i in range(n_classes):
-        precision[i], recall[i], _ = metrics.precision_recall_curve(ytest_b[:, i],
-                                                                    yprob[:, i])
-        avg_prec[i] = metrics.average_precision_score(
-            ytest_b[:, i], yprob[:, i])
-    precision["micro"], recall["micro"], _ = metrics.precision_recall_curve(ytest_b.ravel(),
-                                                                            yprob.ravel())
-    avg_prec["micro"] = metrics.average_precision_score(
-        ytest_b, yprob, average="micro")
+        precision[i], recall[i], _ = pr_curve(ytest_b[:, i], yprob[:, i])
+        avg_prec[i] = avg_score(ytest_b[:, i], yprob[:, i])
+    precision["micro"], recall["micro"], _ = pr_curve(ytest_b.ravel(), 
+                                                      yprob.ravel())
+    avg_prec["micro"] = avg_score(ytest_b, yprob, average="micro")
     ap_micro = avg_prec["micro"]
     model_metrics.update({'precision-micro-avg-classes': ap_micro})
 
@@ -222,11 +224,12 @@ def roc_multi(ytest_b, yprob, labels):
     return PlotArtifact("roc-multiclass", body=plt.gcf())
 
 
-def roc_bin(ytest, yprob):
+def roc_bin(ytest, yprob, clear: bool = False):
     """
     """
     # ROC plot
-    #gcf_clear(plt)
+    if clear:
+        gcf_clear(plt)
     fpr, tpr, _ = metrics.roc_curve(ytest, yprob)
     plt.figure(1)
     plt.plot([0, 1], [0, 1], 'k--')
@@ -239,14 +242,14 @@ def roc_bin(ytest, yprob):
     return PlotArtifact("roc-binary", body=plt.gcf())
 
 
-def precision_recall_bin(model, xtest, ytest, yprob):
+def precision_recall_bin(model, xtest, ytest, yprob, clear=False):
     """
     """
-    # precision-recall
-    #gcf_clear(plt)
+    if clear:
+        gcf_clear(plt)
     disp = metrics.plot_precision_recall_curve(model, xtest, ytest)
-    disp.ax_.set_title(
-        f'precision recall: AP={metrics.average_precision_score(ytest, yprob):0.2f}')
+    pr = metrics.average_precision_score(ytest, yprob)
+    disp.ax_.set_title(f'precision recall: AP={pr:0.2f}')
 
     return PlotArtifact("precision-recall-binary", body=disp.figure_)
 
@@ -262,6 +265,7 @@ def plot_roc(
     tpr_label: str = "true positive rate",
     title: str = "roc curve",
     legend_loc: str = "best",
+    clear: bool = True
 ):
     """plot roc curves
 
@@ -271,15 +275,18 @@ def plot_roc(
     :param y_labels:     ground truth labels, hot encoded for multiclass
     :param y_probs:      model prediction probabilities
     :param key:          ("roc") key of plot in artifact store
-    :param plots_dir:    ("plots") destination folder relative path to artifact path
+    :param plots_dir:    ("plots") destination folder relative path to the 
+                         artifact path
     :param fmt:          ("png") plot format
     :param fpr_label:    ("false positive rate") x-axis labels
     :param tpr_label:    ("true positive rate") y-axis labels
     :param title:        ("roc curve") title of plot
     :param legend_loc:   ("best") location of plot legend
+    :param clear:        (True) clear the matplotlib figure before drawing
     """
     # clear matplotlib current figure
-    gcf_clear(plt)
+    if clear:
+        gcf_clear(plt)
 
     # draw 45 degree line
     plt.plot([0, 1], [0, 1], "k--")
@@ -307,4 +314,5 @@ def plot_roc(
         plt.plot(fpr, tpr, label=f"positive class")
 
     fname = f"{plots_dir}/{key}.html"
-    return context.log_artifact(PlotArtifact(key, body=plt.gcf()), local_path=fname)
+    return context.log_artifact(PlotArtifact(key, body=plt.gcf()), 
+                                local_path=fname)
