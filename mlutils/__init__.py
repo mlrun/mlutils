@@ -14,7 +14,6 @@ from .plots import (gcf_clear,
                     precision_recall_bin)
 
 from .data import (get_sample,
-                   get_splits,
-                   save_heldout)
+                   get_splits)
 
 __version__ = '0.3.0'
