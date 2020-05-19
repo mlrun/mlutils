@@ -58,10 +58,10 @@ def get_splits(
     x, xte, y, yte = train_test_split(raw, labels, test_size=test_size,
                                       random_state=random_state)
     if n_ways == 2:
-        return (x, y), (xte, yte), None, None
+        return (x, y), (xte, yte)
     elif n_ways == 3:
         xtr, xva, ytr, yva = train_test_split(x, y, train_size=valid_size,
                                               random_state=random_state)
-        return (xtr, ytr), (xva, yva), (xte, yte), None
+        return (xtr, ytr), (xva, yva), (xte, yte)
     else:
         raise Exception("n_ways must be in the range [2,3]")
