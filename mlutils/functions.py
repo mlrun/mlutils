@@ -1,4 +1,6 @@
-def _get_vol_mounter(
+import os
+
+def get_vol_mounter(
     v3io_home_key: str = "V3IO_HOME",
     pvc_params = { 
         "pvc_name"          : "nfsvol",
