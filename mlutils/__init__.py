@@ -17,6 +17,6 @@ from .plots import (gcf_clear,
 from .data import (get_sample,
                    get_splits)
 
-from .functions import vol_mounter
+from .functions import get_vol_mounter
 
 __version__ = '0.3.0'
