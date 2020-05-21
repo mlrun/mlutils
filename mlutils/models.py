@@ -134,12 +134,13 @@ def eval_class_model(
     # GEN PROBS (INCL CALIBRATED PROBABILITIES)
     if hasattr(model, "predict_proba"):
         yprob = model.predict_proba(xtest, **pred_params)
+        if not is_multiclass:
+            plot_calibration_curve(ytest, [yprob], ['xgboost'])
+            context.log_artifact(PlotArtifact("calibration curve", body=plt.gcf()),
+                             local_path=f"{plots_dest}/calibration curve.html")
     else:
         # todo if decision fn...
         raise Exception("not implemented for this classifier")
-    plot_calibration_curve(ytest, [yprob], ['xgboost'])
-    context.log_artifact(PlotArtifact("calibration curve", body=plt.gcf()),
-                         local_path=f"{plots_dest}/calibration curve.html")
 
     # start evaluating:
     # mm_plots.extend(learning_curves(model))

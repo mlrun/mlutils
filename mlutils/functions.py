@@ -1,6 +1,6 @@
 import os
 
-def get_vol_mounter(
+def get_vol_mount(
     v3io_home_key: str = "V3IO_HOME",
     pvc_params = { 
         "pvc_name"          : "nfsvol",
@@ -17,9 +17,9 @@ def get_vol_mounter(
     
     reused everywhere, candidate for mlrun
     
-    :param get_vol_mounter:  get a function that can be used to mount a
-                             volume into a function's container ;)
-    :param pvc_params:       parameters passed on to `mlrun.platforms.mount_pvc`
+    :param v3io_home_key:    check for this env variable, if exists return `mount_v3io`,
+                             else return `mount_pvc`
+    :param pvc_params:       parameters passed on to `mount_pvc`
     """
     if v3io_home_key in list(os.environ):
         from mlrun import mount_v3io
@@ -28,4 +28,3 @@ def get_vol_mounter(
         from mlrun.platforms import mount_pvc
         return mount_pvc(**pvc_params)
     
-    return mounter
