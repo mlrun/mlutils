@@ -60,7 +60,7 @@ def get_splits(
     if n_ways == 2:
         return (x, y), (xte, yte)
     elif n_ways == 3:
-        xtr, xva, ytr, yva = train_test_split(x, y, train_size=valid_size,
+        xtr, xva, ytr, yva = train_test_split(x, y, train_size=1-valid_size,
                                               random_state=random_state)
         return (xtr, ytr), (xva, yva), (xte, yte)
     else:
