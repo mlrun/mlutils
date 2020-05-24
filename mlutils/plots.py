@@ -3,6 +3,7 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 import seaborn as sns
 from mlrun.artifacts import PlotArtifact, TableArtifact
+import numpy as np
 import pandas as pd
 from scipy import interp
 from itertools import cycle
@@ -123,7 +124,7 @@ def precision_recall_multi(ytest_b, yprob, labels, scoring="micro"):
                                                       yprob.ravel())
     avg_prec["micro"] = avg_score(ytest_b, yprob, average="micro")
     ap_micro = avg_prec["micro"]
-    model_metrics.update({'precision-micro-avg-classes': ap_micro})
+    # model_metrics.update({'precision-micro-avg-classes': ap_micro})
 
     gcf_clear(plt)
     colors = cycle(['navy', 'turquoise', 'darkorange',
