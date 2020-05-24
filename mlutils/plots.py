@@ -27,7 +27,9 @@ def feature_importances(model, header):
     """
     if not hasattr(model, "feature_importances_"):
         raise Exception(
-            "feature importaces are only available for some models")
+            "feature importances are only available for some models, if you got"
+            "here then please make sure to check your estimated model for a "
+            "`feature_importances_` attribute before calling this method")
 
     # create a feature importance table with desired labels
     zipped = zip(model.feature_importances_, header)

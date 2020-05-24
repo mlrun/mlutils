@@ -177,9 +177,10 @@ def eval_class_model(
             PlotArtifact("learning curve - erreur", body=plt.gcf()),
             local_path=f"{plots_dest}/learning curve - erreur.html")
 
-    (fi_plot, fi_tbl) = feature_importances(model, xtest.columns)
-    mm_plots.append(fi_plot)
-    mm_tables.append(fi_tbl)
+    if hasattr(model, "feature_importances"):
+        (fi_plot, fi_tbl) = feature_importances(model, xtest.columns)
+        mm_plots.append(fi_plot)
+        mm_tables.append(fi_tbl)
 
     mm_plots.append(confusion_matrix(model, xtest, ytest))
 
