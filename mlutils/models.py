@@ -177,7 +177,7 @@ def eval_class_model(
             PlotArtifact("learning curve - erreur", body=plt.gcf()),
             local_path=f"{plots_dest}/learning curve - erreur.html")
 
-    if hasattr(model, "feature_importances"):
+    if hasattr(model, "feature_importances_"):
         (fi_plot, fi_tbl) = feature_importances(model, xtest.columns)
         mm_plots.append(fi_plot)
         mm_tables.append(fi_tbl)
