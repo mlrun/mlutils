@@ -92,7 +92,8 @@ def eval_class_model(
     ytest,
     model,
     plots_dest: str = "plots",
-    pred_params: dict = {}
+    pred_params: dict = {},
+    cmap='Blues'
 ):
     """generate predictions and validation stats
 
@@ -106,7 +107,10 @@ def eval_class_model(
                          Series, numpy array, List)
     :param model:        estimated model
     :param pred_params:  (None) dict of predict function parameters
+    :param cmap:         ('Blues') matplotlib color map
     """
+    import numpy as np
+    
     if isinstance(ytest, np.ndarray):
         unique_labels = np.unique(ytest)
     elif isinstance(ytest, list):
@@ -144,6 +148,13 @@ def eval_class_model(
 
     # start evaluating:
     # mm_plots.extend(learning_curves(model))
+ 
+    cmd = metrics.plot_confusion_matrix(
+        model, xtest, ytest, normalize='all',
+        values_format='.2g', cmap=plt.get_cmap(cmap))
+    cmd.plot()
+    mm_plots.append(PlotArtifact("confusion-matrix-normalized", body=cmd.figure_))
+    
     if hasattr(model, "evals_result"):
         results = model.evals_result()
         train_set = list(results.items())[0]
@@ -182,7 +193,6 @@ def eval_class_model(
         mm_plots.append(fi_plot)
         mm_tables.append(fi_tbl)
 
-    mm_plots.append(confusion_matrix(model, xtest, ytest))
 
     if is_multiclass:
         lb = LabelBinarizer()
@@ -207,6 +217,7 @@ def eval_class_model(
             "f1-score": f1,
             "precision_score": ps,
             "recall_score": rs})
+
 
     else:
         yprob_pos = yprob[:, 1]
